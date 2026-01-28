@@ -8,7 +8,7 @@ export function StrongCta() {
         <h2 className="mt-4 font-heading text-3xl font-semibold">Bereit für eine Website, die einfach funktioniert?</h2>
         <p className="mt-4 text-lg text-white/80">Schreib uns kurz, was du vorhast – wir melden uns innerhalb von 24 Stunden.</p>
         <div className="mt-8 flex flex-col gap-4 text-primary sm:flex-row">
-          <Button to="/kontakt" size="lg">
+          <Button to="/register" size="lg">
             Projekt anfragen
           </Button>
           <Button

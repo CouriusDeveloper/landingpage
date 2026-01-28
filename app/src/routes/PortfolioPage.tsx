@@ -11,7 +11,7 @@ export function PortfolioPage() {
       >
         <ProjectGrid />
         <div className="mt-10 text-center">
-          <Button to="/kontakt" size="lg">
+            <Button to="/register" size="lg">
             Du willst hier auch stehen?
           </Button>
         </div>

@@ -9,7 +9,7 @@ export function ServicesPage() {
       <Section
         title="Unsere Leistungen"
         description="Wir bauen Websites, die schnell sind, klar wirken und ohne WordPress auskommen."
-        actions={<Button to="/kontakt">Beratungsgespräch</Button>}
+        actions={<Button to="/register">Beratungsgespräch</Button>}
       >
         <ServicePackageGrid />
       </Section>

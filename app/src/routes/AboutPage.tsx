@@ -7,9 +7,9 @@ export function AboutPage() {
   return (
     <>
       <Section
-        title="Wir sind Fynn & Jan"
+        title="Über uns"
         description="Brüder, Designer & Engineers. Wir bauen Websites, die unsere Kund:innen verstehen – ohne Over-Engineering."
-        actions={<Button to="/kontakt">Lass uns sprechen</Button>}
+        actions={<Button to="/register">Lass uns sprechen</Button>}
       >
         <FoundersSection />
       </Section>

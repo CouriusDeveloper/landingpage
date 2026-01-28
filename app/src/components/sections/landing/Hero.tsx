@@ -16,7 +16,7 @@ export function Hero() {
             Schnelle, stabile React-Websites für Selbstständige und kleine Unternehmen. Performance, Klarheit und ein Prozess, der Spaß macht.
           </p>
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <Button to="/kontakt" size="lg">
+              <Button to="/register" size="lg">
               Projekt anfragen
             </Button>
             <Button to="/portfolio" variant="secondary" size="lg">

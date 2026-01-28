@@ -4,7 +4,7 @@ export const navAnchors = [
   { label: 'Prozess', path: '/prozess' },
   { label: 'Über uns', path: '/ueber-uns' },
   { label: 'FAQ', path: '/faq' },
-  { label: 'Kontakt', path: '/kontakt' },
+  { label: 'Portal', path: '/portal' },
 ]
 
 export const servicePackages = [
@@ -12,9 +12,9 @@ export const servicePackages = [
     name: 'Onepager',
     description: 'Für Solo-Selbstständige, die eine klare, schnelle Präsenz brauchen.',
     audience: 'Coaches, Berater:innen, Creators',
-    inclusions: ['1 Seite, max. 5 Sektionen', 'Basis-SEO & Tracking', 'Kontaktformular via Form-Service'],
+    inclusions: ['1 Seite, max. 5 Sektionen', 'Basis-SEO & Tracking', 'Onboarding & Projekt-Portal'],
     investment: 'ab 2.400 €',
-    cta: '/kontakt',
+    cta: '/register',
   },
   {
     name: 'Business-Website',
@@ -22,7 +22,7 @@ export const servicePackages = [
     audience: 'Agenturen, Kanzleien, Praxen',
     inclusions: ['3–6 Inhaltsseiten', 'Content-Plan & Wireframes', 'Option auf Blog/News statisch'],
     investment: 'ab 4.800 €',
-    cta: '/kontakt',
+    cta: '/register',
   },
   {
     name: 'Landingpage-Funnel',
@@ -30,7 +30,7 @@ export const servicePackages = [
     audience: 'Productized Services, Launches, Ads',
     inclusions: ['A/B-Test-Ready Sektionen', 'Klares Copy Framework', 'Tracking-Setup & Handover'],
     investment: 'ab 3.200 €',
-    cta: '/kontakt',
+    cta: '/register',
   },
 ]
 
@@ -119,12 +119,12 @@ export const faqItems = [
 
 export const founders = [
   {
-    name: 'Fynn Albrecht',
+    name: '',
     role: 'Struktur & UX',
     bio: 'Analysiert, ordnet und übersetzt Business-Ziele in klare Informationsarchitektur.',
   },
   {
-    name: 'Jan Albrecht',
+    name: '',
     role: 'Design & Frontend',
     bio: 'Verpasst jedem Projekt eine visuelle Handschrift und baut saubere React-Interfaces.',
   },
@@ -137,7 +137,7 @@ export const principles = [
 ]
 
 export const contactInfo = {
-  email: 'hello@fynn-und-jan.de',
+  email: '',
   responseTime: 'Antwort innerhalb von 24 Stunden',
   calendly: 'https://calendly.com/',
 }

@@ -2,7 +2,7 @@ import { type TextareaHTMLAttributes } from 'react'
 import clsx from 'clsx'
 
 type TextareaProps = {
-  label: string
+  label?: string
   hint?: string
 } & TextareaHTMLAttributes<HTMLTextAreaElement>
 

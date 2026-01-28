@@ -6,7 +6,7 @@ export function Footer() {
     <footer className="border-t border-slate-100 bg-white/80">
       <div className="mx-auto flex max-w-content flex-col gap-8 px-4 py-10 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="font-heading text-xl font-semibold text-primary">Fynn & Jan</p>
+          {/* Branding entfernt */}
           <p className="mt-2 text-sm text-secondary">Individuelle React-Websites ohne WordPress.</p>
         </div>
         <div className="flex flex-wrap gap-4 text-sm font-semibold text-secondary">
@@ -17,7 +17,7 @@ export function Footer() {
           ))}
         </div>
         <div className="text-sm text-secondary">
-          <p>hello@fynn-und-jan.de</p>
+          {/* E-Mail entfernt */}
           <p className="mt-1">LinkedIn · GitHub · Impressum</p>
         </div>
       </div>

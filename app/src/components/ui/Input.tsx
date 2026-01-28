@@ -2,7 +2,7 @@ import { type InputHTMLAttributes } from 'react'
 import clsx from 'clsx'
 
 type InputProps = {
-  label: string
+  label?: string
   hint?: string
 } & InputHTMLAttributes<HTMLInputElement>
 

@@ -4,13 +4,15 @@ import { type ButtonHTMLAttributes, type MouseEvent, type ReactNode } from 'reac
 
 const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
-const variantStyles: Record<'primary' | 'secondary' | 'ghost', string> = {
+const variantStyles: Record<'primary' | 'secondary' | 'ghost' | 'outline', string> = {
   primary: 'bg-accent text-white hover:bg-blue-600',
   secondary: 'border border-blue-200 text-accent hover:border-accent hover:text-blue-700',
   ghost: 'text-primary hover:text-accent',
+  outline: 'border border-gray-200 text-primary hover:border-accent hover:text-accent bg-white',
 }
 
-const sizeStyles: Record<'md' | 'lg', string> = {
+const sizeStyles: Record<'sm' | 'md' | 'lg', string> = {
+  sm: 'px-3 py-1.5 text-xs',
   md: 'px-4 py-2 text-sm',
   lg: 'px-6 py-3 text-base',
 }
@@ -19,8 +21,8 @@ type ButtonProps = {
   children: ReactNode
   to?: string
   external?: boolean
-  variant?: 'primary' | 'secondary' | 'ghost'
-  size?: 'md' | 'lg'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'outline'
+  size?: 'sm' | 'md' | 'lg'
   className?: string
   onClick?: (event: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'>

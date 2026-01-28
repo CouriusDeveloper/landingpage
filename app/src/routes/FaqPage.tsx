@@ -8,7 +8,7 @@ export function FaqPage() {
     <Section
       title="Häufige Fragen"
       description="Keine Frage zu klein. Und wenn deine fehlt, schreib uns einfach."
-      actions={<Button to="/kontakt">Kontakt aufnehmen</Button>}
+      actions={<Button to="/register">Kontakt aufnehmen</Button>}
     >
       <Accordion items={faqItems} />
     </Section>

@@ -8,7 +8,7 @@ export function ProcessPage() {
       <Section
         title="So arbeiten wir zusammen"
         description="Transparente Steps, klare Deadlines und direkte Kommunikation."
-        actions={<Button to="/kontakt">Projekt starten</Button>}
+        actions={<Button to="/register">Projekt starten</Button>}
       >
         <div className="grid gap-10 lg:grid-cols-[2fr,1fr]">
           <StepsTimeline />
