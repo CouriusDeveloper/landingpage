@@ -65,11 +65,13 @@ export function AdminCostAnalyticsPage() {
     const loadCosts = async () => {
       try {
         // Load all pipeline runs with project info
-        const { data: pipelines } = await client
+        const { data: pipelinesData } = await client
           .from('pipeline_runs')
           .select('id, project_id, total_tokens, total_cost_usd, created_at, completed_at, projects(name)')
 
-        if (pipelines) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pipelines = (pipelinesData || []) as any[]
+        if (pipelines.length > 0) {
           // Calculate totals
           const totalTokens = pipelines.reduce((sum, p) => sum + (p.total_tokens || 0), 0)
           const totalCost = pipelines.reduce((sum, p) => sum + (p.total_cost_usd || 0), 0)
@@ -134,11 +136,13 @@ export function AdminCostAnalyticsPage() {
         }
 
         // Load agent costs
-        const { data: agentRuns } = await client
+        const { data: agentRunsData } = await client
           .from('agent_runs')
           .select('agent_name, tokens_used, cost_usd, duration_ms')
 
-        if (agentRuns) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const agentRuns = (agentRunsData || []) as any[]
+        if (agentRuns.length > 0) {
           const agentMap = new Map<string, AgentCost>()
           agentRuns.forEach((a) => {
             const existing = agentMap.get(a.agent_name) || {

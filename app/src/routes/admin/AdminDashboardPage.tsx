@@ -70,11 +70,13 @@ export function AdminDashboardPage() {
     const loadDashboard = async () => {
       try {
         // Load projects stats
-        const { data: projects } = await client
+        const { data: projectsData } = await client
           .from('projects')
           .select('id, status, has_pending_changes, package_type')
 
-        if (projects) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const projects = (projectsData || []) as any[]
+        if (projects.length > 0) {
           const activeStatuses = ['discovery', 'generating', 'design', 'development', 'review']
           setStats(prev => ({
             ...prev,
