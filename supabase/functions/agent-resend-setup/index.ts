@@ -9,6 +9,7 @@ import {
   createAgentRun,
   updateAgentRun,
   triggerAgent,
+  triggerNextAgent,
 } from '../_shared/agent-utils.ts'
 import type { AgentEnvelope, AgentResponse } from '../_shared/types/pipeline.ts'
 
@@ -198,7 +199,7 @@ Deno.serve(async (req) => {
 
     // Check if analytics should run next
     const packageType = envelope.project.packageType || 'starter'
-    const addons = envelope.project.addons || []
+    // Note: using 'addons' already declared at top of try block
     const hasAnalytics = packageType === 'enterprise' || addons.includes('analytics')
 
     if (hasAnalytics) {
@@ -251,6 +252,37 @@ Deno.serve(async (req) => {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         completed_at: new Date().toISOString(),
       })
+    }
+
+    // IMPORTANT: Still trigger next agent even on failure!
+    try {
+      const envelope: AgentEnvelope = await req.clone().json()
+      const { meta, project } = envelope
+      const packageType = project.packageType || 'starter'
+      const addons = project.addons || []
+      const hasAnalytics = packageType === 'enterprise' || addons.includes('analytics')
+      
+      console.log('[RESEND-SETUP] Triggering next agent despite failure...')
+      
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      )
+      
+      if (hasAnalytics) {
+        await triggerAgent('analytics', {
+          ...envelope,
+          meta: { ...meta, agentName: 'analytics', phase: 5, sequence: 3, timestamp: new Date().toISOString() },
+        })
+      } else {
+        await supabase.from('pipeline_runs').update({ status: 'phase_6' }).eq('id', meta.pipelineRunId)
+        await triggerAgent('deployer', {
+          ...envelope,
+          meta: { ...meta, agentName: 'deployer', phase: 6, sequence: 1, timestamp: new Date().toISOString() },
+        })
+      }
+    } catch (triggerError) {
+      console.error('[RESEND-SETUP] Failed to trigger next agent:', triggerError)
     }
 
     return new Response(JSON.stringify({

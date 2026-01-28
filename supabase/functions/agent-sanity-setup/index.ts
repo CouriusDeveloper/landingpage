@@ -331,6 +331,16 @@ Deno.serve(async (req) => {
       })
     }
 
+    // IMPORTANT: Still trigger next agent even on failure!
+    // This prevents the pipeline from getting stuck
+    try {
+      const envelope: AgentEnvelope = await req.clone().json()
+      console.log('[SANITY-SETUP] Triggering next agent despite failure...')
+      await triggerNextAgent(envelope, envelope.meta)
+    } catch (triggerError) {
+      console.error('[SANITY-SETUP] Failed to trigger next agent:', triggerError)
+    }
+
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

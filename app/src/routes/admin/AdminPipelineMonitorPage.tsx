@@ -152,10 +152,7 @@ export function AdminPipelineMonitorPage() {
         .single()
 
       if (pipelineData) {
-        setPipeline({
-          ...pipelineData,
-          projects: pipelineData.projects,
-        })
+        setPipeline(pipelineData as unknown as PipelineRun)
       }
 
       // Load agent runs
@@ -193,7 +190,7 @@ export function AdminPipelineMonitorPage() {
   useEffect(() => {
     if (!supabase || !pipelineId) return
 
-    const channel = supabase
+    const channel = supabase!
       .channel(`pipeline-${pipelineId}`)
       .on('postgres_changes', {
         event: '*',
@@ -214,7 +211,7 @@ export function AdminPipelineMonitorPage() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase!.removeChannel(channel)
     }
   }, [pipelineId, loadData])
 
