@@ -56,6 +56,9 @@ interface ProjectData {
   email_domain_verified?: boolean
   resend_domain_id?: string | null
   resend_dns_records?: ResendDnsRecord[] | null
+  // Tracking Pixel IDs
+  google_pixel_id?: string | null
+  meta_pixel_id?: string | null
 }
 
 interface SanitySetupResult {
@@ -268,6 +271,8 @@ Deno.serve(async (req) => {
         sanityApiToken: projectData.sanity_api_token || null,
         emailDomain: projectData.email_domain || null,
         emailDomainVerified: projectData.email_domain_verified || false,
+        googlePixelId: projectData.google_pixel_id || null,
+        metaPixelId: projectData.meta_pixel_id || null,
       }
       
       // Check for existing Content Pack
@@ -589,22 +594,18 @@ async function setupSanityProject(
   managementToken: string,
   project: ProjectData
 ): Promise<SanitySetupResult> {
-  const projectSlug = project.name
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .substring(0, 40)
+  // Create a unique dataset name from project ID (max 20 chars, lowercase, alphanumeric + hyphen)
+  const datasetName = `p-${project.id.slice(0, 8).toLowerCase()}`
+  
+  console.log(`Setting up Sanity dataset: ${datasetName} for project: ${project.name}`)
 
-  console.log('Creating Sanity project:', projectSlug)
+  // 1. Use shared Sanity project (ID: cmrv2qwc)
+  const sanityProjectId = 'cmrv2qwc'
+  console.log(`Using Sanity project: ${sanityProjectId}, dataset: ${datasetName}`)
 
-  // 1. Use existing Sanity project (ID: cmrv2qwc)
-  const sanityProject = { id: 'cmrv2qwc', displayName: `${project.name} Website` }
-  const sanityProjectId = sanityProject.projectId || sanityProject.id
-  console.log('Sanity project created:', sanityProjectId)
-
-  // 2. Create production dataset
+  // 2. Create project-specific dataset
   const createDatasetRes = await fetch(
-    `https://api.sanity.io/v2021-06-07/projects/${sanityProjectId}/datasets/production`,
+    `https://api.sanity.io/v2021-06-07/projects/${sanityProjectId}/datasets/${datasetName}`,
     {
       method: 'PUT',
       headers: {
@@ -616,11 +617,17 @@ async function setupSanityProject(
   )
 
   if (!createDatasetRes.ok) {
-    console.warn('Dataset creation warning:', await createDatasetRes.text())
+    const errorText = await createDatasetRes.text()
+    // Dataset might already exist, which is fine
+    if (!errorText.includes('already exists')) {
+      console.warn('Dataset creation warning:', errorText)
+    }
+  } else {
+    console.log(`Dataset ${datasetName} created successfully`)
   }
 
   // 3. Create API token for the project (unique label to avoid conflicts)
-  const tokenLabel = `Website API Token - ${Date.now()}`
+  const tokenLabel = `${project.name} - ${datasetName} - ${Date.now()}`
   
   // First, try to get existing tokens
   const listTokensRes = await fetch(
@@ -635,55 +642,43 @@ async function setupSanityProject(
 
   let apiToken: string | null = null
 
-  if (listTokensRes.ok) {
-    const existingTokens = await listTokensRes.json()
-    // Check if we have an existing editor token we can use
-    const existingEditorToken = existingTokens.find(
-      (t: { roleName: string; key?: string }) => t.roleName === 'editor' && t.key
-    )
-    if (existingEditorToken?.key) {
-      apiToken = existingEditorToken.key
-      console.log('Using existing Sanity token')
+  // Always create a new token for each project for security isolation
+  const createTokenRes = await fetch(
+    `https://api.sanity.io/v2021-06-07/projects/${sanityProjectId}/tokens`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${managementToken}`
+      },
+      body: JSON.stringify({
+        label: tokenLabel,
+        roleName: 'editor'
+      })
     }
+  )
+
+  if (!createTokenRes.ok) {
+    const error = await createTokenRes.text()
+    throw new Error(`Failed to create Sanity token: ${error}`)
   }
 
-  // If no existing token found, create a new one with unique label
-  if (!apiToken) {
-    const createTokenRes = await fetch(
-      `https://api.sanity.io/v2021-06-07/projects/${sanityProjectId}/tokens`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${managementToken}`
-        },
-        body: JSON.stringify({
-          label: tokenLabel,
-          roleName: 'editor'
-        })
-      }
-    )
+  const tokenData = await createTokenRes.json()
+  apiToken = tokenData.key
+  console.log(`Created Sanity token for dataset: ${datasetName}`)
 
-    if (!createTokenRes.ok) {
-      const error = await createTokenRes.text()
-      throw new Error(`Failed to create Sanity token: ${error}`)
-    }
+  // 4. Create initial content in the project-specific dataset
+  await createSanityContent(sanityProjectId, datasetName, apiToken, project)
 
-    const tokenData = await createTokenRes.json()
-    apiToken = tokenData.key
-    console.log('Created new Sanity token')
-  }
+  // Studio URL uses project.id as the path (unique per customer project)
+  // This allows each customer to have their own embedded studio at /studio/{project-ref}
+  const studioPath = `/studio/${project.id}`
 
-  // 4. Create initial content
-  await createSanityContent(sanityProjectId, 'production', apiToken, project)
-
-  // Return config - studioUrl will be updated after Vercel deployment
-  // The embedded studio is at /{projectId} for security (hidden path)
   return {
     projectId: sanityProjectId,
-    dataset: 'production',
+    dataset: datasetName,
     apiToken: apiToken,
-    studioUrl: '/' + sanityProjectId // Hidden path for security
+    studioUrl: studioPath
   }
 }
 
@@ -1487,7 +1482,7 @@ WICHTIG: Diese Website nutzt Sanity CMS!
 PLAN-AUSZUG:
 ${plan.substring(0, 1500)}
 ${headerCmsNote}
-AUFGABE: Header-Komponente (src/components/Header.tsx)
+AUFGABE: Header-Komponente (src/components/layout/Header.tsx)
 
 ANFORDERUNGEN:
 - Responsive mit Mobile-Menu (Hamburger Icon + useState) - use 'use client'
@@ -1511,7 +1506,7 @@ ${hasCms ? '- Header muss Props für siteSettings akzeptieren können (optional)
 
 NUR Code ausgeben.`,
   })
-  files.push({ path: 'src/components/Header.tsx', content: cleanCode(extractResponseText(header)) })
+  files.push({ path: 'src/components/layout/Header.tsx', content: cleanCode(extractResponseText(header)) })
 
   // Footer with Theme Toggle
   const footer = await openai.responses.create({
@@ -1519,7 +1514,7 @@ NUR Code ausgeben.`,
     instructions: 'Expert React developer. TypeScript code only. NO markdown.',
     input: `${context}
 
-Footer-Komponente (src/components/Footer.tsx)
+Footer-Komponente (src/components/layout/Footer.tsx)
 
 ANFORDERUNGEN:
 - 3-4 Spalten responsive (Firma, Navigation, Kontakt, Legal)
@@ -1538,7 +1533,7 @@ ANFORDERUNGEN:
 
 🎨 THEME TOGGLE (GANZ UNTEN IM FOOTER):
 Am Ende des Footers (nach Copyright) füge den Theme-Toggle ein:
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 
 Ganz unten im Footer:
 <div className="mt-8 pt-8 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -1548,7 +1543,7 @@ Ganz unten im Footer:
 
 NUR Code.`,
   })
-  files.push({ path: 'src/components/Footer.tsx', content: cleanCode(extractResponseText(footer)) })
+  files.push({ path: 'src/components/layout/Footer.tsx', content: cleanCode(extractResponseText(footer)) })
 
   // Button
   const button = `'use client'
@@ -1712,7 +1707,7 @@ export default Button
   animation: float 6s ease-in-out infinite;
 }
 `
-  files.push({ path: 'src/styles/globals.css', content: styles })
+  files.push({ path: 'src/app/globals.css', content: styles })
 
   // Motion wrapper components for animations
   const motionComponents = `'use client'
@@ -2156,9 +2151,9 @@ Füge "btn-hover" zu allen Buttons hinzu für smooth hover-Effekt!
 Nutze className="card card-hover" für alle Cards (auto Dark Mode)!
 
 ANFORDERUNGEN:
-1. Import Header/Footer from '@/components/Header', '@/components/Footer'
-2. Import Animation-Komponenten von '@/components/ui/Motion'
-3. Import Icons von 'lucide-react'
+1. Import Header/Footer from '@/components/layout/Header', '@/components/layout/Footer'
+2. Import NUR die Animation-Komponenten von '@/components/ui/Motion' die du auch verwendest
+3. Import NUR die Icons von 'lucide-react' die du auch verwendest
 4. ALLE Sektionen INLINE in dieser Datei implementieren
 5. REALISTISCHER Content für "${project.name}" (KEIN Lorem ipsum!)
 6. Bilder: https://placehold.co/800x600
@@ -2168,6 +2163,7 @@ ANFORDERUNGEN:
 10. h1 nur EINMAL pro Seite
 11. ANIMATIONEN für alle Sektionen!
 12. DARK MODE: Alle Farben mit dark: Varianten!
+13. ⚠️ KEINE UNGENUTZTEN IMPORTS! Jeder Import muss auch verwendet werden!
 
 SEKTIONS-SPECS:
 - hero: Headline (FadeIn), Subline (FadeIn delay), 1-2 CTAs (FadeIn delay), Gradient/Bild, bg-white dark:bg-slate-900
@@ -2234,7 +2230,7 @@ function generateConfigFiles(
       IMP + " type { Metadata } from 'next'",
       IMP + " { Inter } from 'next/font/google'",
       IMP + " { ThemeProvider } from 'next-themes'",
-      IMP + " '@/styles/globals.css'",
+      IMP + " './globals.css'",
       IMP + " { ScrollProgress } from '@/components/ui/ScrollProgress'",
       IMP + " { BackToTop } from '@/components/ui/BackToTop'",
       "",

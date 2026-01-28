@@ -52,17 +52,58 @@ Generate complete, production-ready files including:
 6. next.config.js with proper settings
 7. API routes for contact forms
 
-## Content Rendering Pattern:
+## Content Rendering Patterns:
+
+### WITHOUT CMS (Static Content):
+When CMS addon is NOT enabled, use static imports from site.ts:
 \`\`\`tsx
-// BAD - Never do this:
-<h1>Welcome to Our Site</h1>
+// site.ts - Export static Content Pack
+import { contentPack } from '@/content/site'
 
-// GOOD - Always reference Content Pack:
-<h1>{contentPack.pages[0].sections[0].content.headline}</h1>
+// Component - Direct import and use
+import { contentPack } from '@/content/site'
 
-// Or with pre-extracted data:
-<h1>{hero.headline}</h1>
+export function HeroSection() {
+  const hero = contentPack.pages[0].sections.find(s => s.type === 'hero')?.content
+  return <h1>{hero?.headline}</h1>
+}
 \`\`\`
+
+### WITH CMS (Sanity Integration):
+When CMS addon IS enabled, fetch content from Sanity:
+\`\`\`tsx
+// lib/sanity.ts - Sanity client setup
+import { createClient } from '@sanity/client'
+
+export const sanityClient = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
+  useCdn: true,
+  apiVersion: '2024-01-01',
+})
+
+// lib/queries.ts - GROQ queries
+export const heroQuery = \`*[_type == "hero"][0]{ headline, subheadline, cta, image }\`
+
+// Component - Server component with Sanity fetch
+import { sanityClient } from '@/lib/sanity'
+import { heroQuery } from '@/lib/queries'
+
+export async function HeroSection() {
+  const hero = await sanityClient.fetch(heroQuery)
+  return <h1>{hero?.headline}</h1>
+}
+
+// For images with CMS:
+import imageUrlBuilder from '@sanity/image-url'
+const builder = imageUrlBuilder(sanityClient)
+const imageUrl = builder.image(hero.image).width(800).url()
+\`\`\`
+
+### CRITICAL CMS Rules:
+- WITH CMS: Use \`sanityClient.fetch()\` with GROQ queries, Server Components, async/await
+- WITHOUT CMS: Use static imports from \`@/content/site.ts\`, no async needed
+- NEVER mix patterns - check CMS addon flag and use ONE approach consistently
 
 ## Output Format:
 {
@@ -192,6 +233,50 @@ ${getUniqueSectionTypes(input.contentPack).join(', ')}
 - SEO metadata for each page
 - Framer Motion animations
 - Lucide React icons
+${input.addons.includes('cms') ? `
+## CMS ENABLED - Sanity Integration Required:
+- Create lib/sanity.ts with Sanity client (projectId: ${input.projectData.sanityProjectId}, dataset: ${input.projectData.sanityDataset})
+- Create lib/queries.ts with GROQ queries for each content type
+- Use Server Components with async fetch from Sanity
+- Use @sanity/image-url for image handling
+- DO NOT import from site.ts - fetch everything from Sanity
+` : `
+## NO CMS - Static Content:
+- Export Content Pack from src/content/site.ts
+- Import content directly in components
+- Use client components where needed for interactivity
+- All content comes from the static site.ts file
+`}
+${input.addons.includes('google_pixel') ? `
+## GOOGLE ANALYTICS (GA4) Required:
+- Add Google Analytics script to app/layout.tsx using next/script
+- Use NEXT_PUBLIC_GA_MEASUREMENT_ID environment variable
+- Wrap in cookie consent check before firing events
+- Track page views automatically with usePathname()
+` : ''}
+${input.addons.includes('meta_pixel') ? `
+## META PIXEL (Facebook/Instagram) Required:
+- Add Meta Pixel script to app/layout.tsx using next/script
+- Use NEXT_PUBLIC_META_PIXEL_ID environment variable
+- Wrap in cookie consent check before firing events
+- Track PageView event on route changes
+` : ''}
+${input.addons.includes('cookie_consent') ? `
+## COOKIE CONSENT BANNER Required:
+- Create components/CookieConsent.tsx component
+- Show banner on first visit, store preference in localStorage
+- Provide options: "Accept All", "Reject All", "Customize"
+- Only load tracking scripts (GA4, Meta Pixel) after consent
+- DSGVO/GDPR compliant with link to privacy policy
+` : ''}
+${input.addons.includes('seo_package') ? `
+## SEO PACKAGE Required:
+- Generate app/sitemap.ts for dynamic sitemap.xml
+- Generate app/robots.ts for robots.txt
+- Add comprehensive metadata to each page (title, description, og:image, twitter:card)
+- Add JSON-LD structured data (Organization, WebSite, BreadcrumbList)
+- Ensure all images have alt text from Content Pack
+` : ''}
 
 ## File Structure:
 \`\`\`
@@ -444,6 +529,24 @@ export function getRequiredEnvVariables(input: CodeRendererInput): EnvVariableOu
         required: true,
       }
     )
+  }
+
+  if (input.addons.includes('google_pixel')) {
+    envVars.push({
+      name: 'NEXT_PUBLIC_GA_MEASUREMENT_ID',
+      value: input.projectData.googlePixelId || null,
+      description: 'Google Analytics 4 Measurement ID (G-XXXXXXXXXX)',
+      required: true,
+    })
+  }
+
+  if (input.addons.includes('meta_pixel')) {
+    envVars.push({
+      name: 'NEXT_PUBLIC_META_PIXEL_ID',
+      value: input.projectData.metaPixelId || null,
+      description: 'Meta (Facebook) Pixel ID',
+      required: true,
+    })
   }
 
   return envVars

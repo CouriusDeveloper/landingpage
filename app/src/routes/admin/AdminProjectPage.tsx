@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import JSZip from 'jszip'
 import { Section } from '../../components/ui/Section'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -117,6 +118,10 @@ export function AdminProjectPage() {
   const [newMessage, setNewMessage] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+  
+  // Download state
+  const [downloading, setDownloading] = useState(false)
+  const [fileCount, setFileCount] = useState<number>(0)
 
   // Load project, messages, pipeline runs
   useEffect(() => {
@@ -167,6 +172,18 @@ export function AdminProjectPage() {
         } catch {
           // pipeline_runs table may not exist yet
           console.log('Pipeline runs table not available')
+        }
+
+        // Load file count
+        try {
+          const { count } = await client
+            .from('generated_files')
+            .select('*', { count: 'exact', head: true })
+            .eq('project_id', id)
+          
+          setFileCount(count ?? 0)
+        } catch {
+          console.log('Generated files table not available')
         }
 
       } catch (err) {
@@ -399,6 +416,57 @@ export function AdminProjectPage() {
     }
   }, [])
 
+  // Download repository as ZIP
+  const downloadRepository = useCallback(async () => {
+    if (!supabase || !id || !project) return
+    
+    setDownloading(true)
+    try {
+      // Load all generated files from database
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: files, error: filesError } = await (supabase as any)
+        .from('generated_files')
+        .select('file_path, content')
+        .eq('project_id', id) as { data: { file_path: string; content: string }[] | null; error: Error | null }
+      
+      if (filesError) throw filesError
+      
+      if (!files || files.length === 0) {
+        alert('Keine generierten Dateien gefunden. Bitte zuerst die Website generieren.')
+        return
+      }
+      
+      // Create ZIP file
+      const zip = new JSZip()
+      
+      for (const file of files) {
+        // Add file to ZIP with correct path
+        zip.file(file.file_path, file.content)
+      }
+      
+      // Generate ZIP
+      const blob = await zip.generateAsync({ type: 'blob' })
+      
+      // Trigger download
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${project.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-code.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      console.log(`Downloaded ${files.length} files as ZIP`)
+      
+    } catch (err) {
+      console.error('Download error:', err)
+      alert(`Download fehlgeschlagen: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`)
+    } finally {
+      setDownloading(false)
+    }
+  }, [id, project])
+
   // Get shareable client link
   const getClientLink = useCallback(() => {
     return `${window.location.origin}/projekt/${id}`
@@ -468,6 +536,16 @@ export function AdminProjectPage() {
           >
             {copiedLink === 'client' ? 'Kopiert!' : 'Kunden-Link kopieren'}
           </Button>
+          {fileCount > 0 && (
+            <Button
+              variant="outline"
+              onClick={downloadRepository}
+              disabled={downloading}
+              className="border-green-300 text-green-600 hover:bg-green-50"
+            >
+              {downloading ? 'Lädt...' : `📥 Code (${fileCount} Dateien)`}
+            </Button>
+          )}
           {project.status === 'generating' && (
             <Button
               variant="outline"

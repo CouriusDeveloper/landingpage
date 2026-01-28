@@ -50,10 +50,26 @@ ${agentContext.systemPromptAddition}
 - Tailwind CSS für Styling (mit dark: Varianten!)
 - Lucide-react für Icons
 
-## IMPORTS (EXAKT SO VERWENDEN!):
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
-import { HeroSection, FeaturesSection, CtaSection, AboutSection, ContactSection, LegalSection } from '@/components/sections'
+## VERFÜGBARE IMPORTS (NUR IMPORTIEREN WAS DU AUCH VERWENDEST!):
+// Layout - immer benötigt:
+import Header from '@/components/layout/Header'
+import Footer from '@/components/layout/Footer'
+
+// Sections - nur importieren was auf der Seite verwendet wird:
+import { HeroSection, FeaturesSection, CtaSection, AboutSection, ContactSection, LegalSection } from '@/components/sections/landing'
+
+// Animationen - nur importieren was verwendet wird:
+import { FadeIn, SlideIn, StaggerContainer, StaggerItem, ScaleOnHover } from '@/components/ui/Motion'
+
+⚠️ WICHTIG: Importiere NUR Komponenten die du auch verwendest! Ungenutzte Imports verursachen Build-Fehler!
+
+## ANIMATIONEN (PFLICHT FÜR PREMIUM-QUALITÄT!):
+Verwende Motion-Komponenten für alle Sektionen:
+- Hero: <FadeIn> für Headline, <FadeIn delay={0.2}> für Subline, <FadeIn delay={0.4}> für Buttons
+- Features/Services: <StaggerContainer><StaggerItem> pro Card</StaggerItem></StaggerContainer>
+- About: <SlideIn direction="left"> für Text, <SlideIn direction="right"> für Bild
+- CTA: <FadeIn className="text-center"> für den gesamten Block
+- Cards: <ScaleOnHover> für clickable Cards
 
 ## VERFÜGBARE SECTIONS:
 - HeroSection: props={{ headline, subheadline, ctaText, ctaHref, image }}
@@ -61,7 +77,9 @@ import { HeroSection, FeaturesSection, CtaSection, AboutSection, ContactSection,
 - CtaSection: props={{ title, description, ctaText, ctaHref }}
 - AboutSection: props={{ title, description, team?: [] }}
 - ContactSection: props={{ title, description, email, phone, address }}
-- LegalSection: props={{ title, content }} - Für Impressum/Datenschutz`
+- LegalSection: props={{ title, content }} - Für Impressum/Datenschutz
+
+⚠️ WICHTIG: Verwende NIEMALS null für Props! Wenn ein Wert nicht vorhanden ist, lasse die Property weg oder verwende undefined.`
 
   if (techStack.cms.enabled) {
     prompt += `
@@ -76,7 +94,7 @@ import { HeroSection, FeaturesSection, CtaSection, AboutSection, ContactSection,
     prompt += `
 
 ## KONTAKTFORMULAR:
-- Importiere ContactForm aus '@/components/ContactForm'
+- Importiere ContactForm aus '@/components/sections/contact/ContactForm'
 - Server Action für Email ist bereits in '@/lib/actions/contact'`
   }
 
@@ -85,7 +103,7 @@ import { HeroSection, FeaturesSection, CtaSection, AboutSection, ContactSection,
 
 ## BLOG:
 - Blog-Seiten fetchen Posts aus Sanity
-- Import BlogSection aus '@/components/sections/BlogSection'`
+- Import BlogSection aus '@/components/sections/blog/BlogSection'`
   }
 
   prompt += `

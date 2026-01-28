@@ -1,6 +1,7 @@
 // =============================================================================
 // AGENT: IMAGE (Phase 1)
-// Stock image selection from Unsplash (free commercial use, no attribution required)
+// Stock image selection from Pexels (free commercial use, no attribution required)
+// Pexels explicitly allows automated/API usage for commercial projects
 // =============================================================================
 
 import {
@@ -11,7 +12,7 @@ import {
 } from '../_shared/agent-utils.ts'
 import type { AgentEnvelope, AgentResponse, ImageOutput } from '../_shared/types/pipeline.ts'
 
-const UNSPLASH_ACCESS_KEY = Deno.env.get('UNSPLASH_ACCESS_KEY')
+const PEXELS_API_KEY = Deno.env.get('PEXELS_API_KEY')
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -70,42 +71,44 @@ Deno.serve(async (req) => {
       portfolio: `${baseQuery} project work`,
     }
 
-    if (UNSPLASH_ACCESS_KEY) {
-      // Fetch images from Unsplash
+    if (PEXELS_API_KEY) {
+      // Fetch images from Pexels API
       for (const purpose of imagePurposes) {
         const query = queryMap[purpose] || baseQuery
         
         try {
           const response = await fetch(
-            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
+            `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
             {
               headers: {
-                'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}`,
+                'Authorization': PEXELS_API_KEY,
               },
             }
           )
           
           if (response.ok) {
             const data = await response.json()
-            const photo = data.results[0]
+            const photo = data.photos?.[0]
             
             if (photo) {
               images.push({
-                id: photo.id,
+                id: String(photo.id),
                 purpose,
-                source: 'unsplash',
-                url: photo.urls.regular,
-                thumbnailUrl: photo.urls.thumb,
-                alt: photo.alt_description || `${purpose} image`,
+                source: 'pexels',
+                url: photo.src.large2x || photo.src.large,
+                thumbnailUrl: photo.src.small,
+                alt: photo.alt || `${purpose} image`,
                 credit: {
-                  name: photo.user.name,
-                  url: photo.user.links.html,
+                  name: photo.photographer,
+                  url: photo.photographer_url,
                 },
                 width: photo.width,
                 height: photo.height,
               })
-              console.log(`[IMAGE] Found Unsplash image for ${purpose}`)
+              console.log(`[IMAGE] Found Pexels image for ${purpose}: ${photo.src.large}`)
             }
+          } else {
+            console.warn(`[IMAGE] Pexels API error for ${purpose}:`, response.status, await response.text())
           }
         } catch (err) {
           console.warn(`[IMAGE] Failed to fetch ${purpose}:`, err)
@@ -132,7 +135,7 @@ Deno.serve(async (req) => {
     await updateAgentRun(agentRunId, {
       status: 'completed',
       output_data: output,
-      model_used: 'unsplash-api',
+      model_used: 'pexels-api',
       input_tokens: 0,
       output_tokens: 0,
       duration_ms: durationMs,
@@ -150,7 +153,7 @@ Deno.serve(async (req) => {
       quality: { 
         score: images.length > 0 ? 8.5 : 6.0, 
         passed: true, 
-        issues: images.length === 0 ? ['No Unsplash API key, using placeholders'] : [], 
+        issues: images.length === 0 ? ['No Pexels API key configured, using placeholders'] : [], 
         criticalCount: 0 
       },
       control: {
@@ -163,7 +166,7 @@ Deno.serve(async (req) => {
         abort: false,
         abortReason: null,
       },
-      metrics: { durationMs, inputTokens: 0, outputTokens: 0, model: 'unsplash-api', costUsd: 0 },
+      metrics: { durationMs, inputTokens: 0, outputTokens: 0, model: 'pexels-api', costUsd: 0 },
     }
 
     return new Response(JSON.stringify(response), {

@@ -473,6 +473,10 @@ export interface ProjectDataExtended {
   // Email fields
   emailDomain: string | null
   emailDomainVerified: boolean
+  
+  // Tracking Pixel IDs
+  googlePixelId: string | null
+  metaPixelId: string | null
 }
 
 export interface PageInput {

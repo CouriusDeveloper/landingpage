@@ -372,11 +372,24 @@ export function isFeatureAllowed(context: AgentContext, feature: string): boolea
  */
 export function getRequiredFiles(context: AgentContext): string[] {
   const files: string[] = [
-    // Always required
-    'src/components/Header.tsx',
-    'src/components/Footer.tsx',
-    'src/components/ThemeProvider.tsx',
-    'src/components/ThemeToggle.tsx',
+    // Always required - Layout Components
+    'src/components/layout/Header.tsx',
+    'src/components/layout/Footer.tsx',
+    'src/components/layout/ThemeProvider.tsx',
+    'src/components/layout/ThemeToggle.tsx',
+    // Section Components
+    'src/components/sections/landing/index.ts',
+    'src/components/sections/landing/HeroSection.tsx',
+    'src/components/sections/landing/FeaturesSection.tsx',
+    'src/components/sections/landing/CtaSection.tsx',
+    'src/components/sections/landing/AboutSection.tsx',
+    'src/components/sections/landing/ContactSection.tsx',
+    'src/components/sections/landing/LegalSection.tsx',
+    // UI Components
+    'src/components/ui/Motion.tsx',
+    'src/components/ui/ScrollProgress.tsx',
+    'src/components/ui/BackToTop.tsx',
+    // App Files
     'src/app/layout.tsx',
     'src/app/globals.css',
     'tailwind.config.ts',
@@ -387,7 +400,7 @@ export function getRequiredFiles(context: AgentContext): string[] {
   
   // Cookie Consent
   if (context.techStack.cookieConsent.enabled) {
-    files.push('src/components/CookieConsent.tsx')
+    files.push('src/components/layout/CookieConsent.tsx')
   }
   
   // CMS
@@ -409,7 +422,7 @@ export function getRequiredFiles(context: AgentContext): string[] {
       'sanity/schemas/category.ts',
       'src/app/blog/page.tsx',
       'src/app/blog/[slug]/page.tsx',
-      'src/components/sections/BlogSection.tsx'
+      'src/components/sections/blog/BlogSection.tsx'
     )
   }
   
@@ -417,7 +430,7 @@ export function getRequiredFiles(context: AgentContext): string[] {
   if (context.techStack.email.enabled) {
     files.push(
       'src/lib/actions/contact.ts',
-      'src/components/ContactForm.tsx'
+      'src/components/sections/contact/ContactForm.tsx'
     )
   }
   

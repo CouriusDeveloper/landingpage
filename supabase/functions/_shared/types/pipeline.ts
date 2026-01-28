@@ -343,7 +343,7 @@ export interface ImageOutput {
   images: Array<{
     id: string
     purpose: string // 'hero', 'about', 'team', 'feature-1', etc.
-    source: 'unsplash' | 'pexels'
+    source: 'pexels' | 'pixabay' | 'uploaded'
     url: string
     thumbnailUrl: string
     alt: string

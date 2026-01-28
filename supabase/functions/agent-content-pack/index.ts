@@ -29,6 +29,69 @@ import type {
   EditorOutput,
 } from '../_shared/types/pipeline.ts'
 
+// =============================================================================
+// ADDON-SPECIFIC CONTENT INSTRUCTIONS
+// =============================================================================
+function buildAddonInstructions(addons: string[]): string {
+  const instructions: string[] = []
+  
+  if (addons.length === 0) {
+    return 'Keine Addons gebucht - nur Standard-Inhalte erstellen.'
+  }
+  
+  if (addons.includes('cookie_consent') || addons.includes('google_pixel') || addons.includes('meta_pixel')) {
+    instructions.push(`### Cookie Consent Banner
+Erstelle im siteSettings einen "cookieConsent" Block:
+{
+  "cookieConsent": {
+    "headline": "Wir respektieren Ihre Privatsphäre",
+    "text": "Diese Website verwendet Cookies für Analyse und verbesserte Nutzererfahrung.",
+    "acceptAll": "Alle akzeptieren",
+    "rejectAll": "Nur notwendige",
+    "customize": "Einstellungen",
+    "privacyLink": "/datenschutz"
+  }
+}`)
+  }
+  
+  if (addons.includes('google_pixel')) {
+    instructions.push(`### Google Analytics
+Im cookieConsent.categories Array hinzufügen:
+{ "id": "analytics", "name": "Analyse", "description": "Hilft uns die Nutzung zu verstehen (Google Analytics)" }`)
+  }
+  
+  if (addons.includes('meta_pixel')) {
+    instructions.push(`### Meta Pixel
+Im cookieConsent.categories Array hinzufügen:
+{ "id": "marketing", "name": "Marketing", "description": "Personalisierte Werbung (Meta/Facebook)" }`)
+  }
+  
+  if (addons.includes('booking_form')) {
+    instructions.push(`### Kontaktformular
+Auf der Kontakt-Seite eine "contact" Section mit:
+- headline: Kurze Überschrift
+- text: 1 Satz warum Kontakt aufnehmen
+- form: { fields: ["name", "email", "message"], submitText: "Nachricht senden", successMessage: "Danke! Wir melden uns." }`)
+  }
+  
+  if (addons.includes('blog_addon')) {
+    instructions.push(`### Blog
+Erstelle eine Blog-Seite mit:
+- headline: "Blog" oder branchenspezifisch
+- text: 1 Satz was Leser erwarten können
+- Hinweis: Artikel werden später im CMS gepflegt`)
+  }
+  
+  if (addons.includes('seo_package')) {
+    instructions.push(`### SEO-Paket
+- Jede Seite MUSS unique metaDescription haben (140-155 Zeichen)
+- structuredData im siteSettings für Schema.org:
+{ "structuredData": { "type": "LocalBusiness", "name": "...", "description": "..." } }`)
+  }
+  
+  return instructions.join('\n\n')
+}
+
 const SYSTEM_PROMPT = `Du erstellst das finale Website Content Pack durch Zusammenführung aller Agent-Outputs.
 
 ## KRITISCHE QUALITÄTSREGELN
@@ -204,6 +267,9 @@ ${JSON.stringify(legalOutput, null, 2).slice(0, 2000)}` : ''}
 
 ## SEITEN (nur diese erstellen)
 ${pagesToGenerate.map(p => `- ${p.slug}: ${p.sections.slice(0, 3).join(', ')}`).join('\n')}
+
+## GEBUCHTE ADDONS
+${buildAddonInstructions(project.addons || [])}
 
 ${previousContentPack && editorFeedback ? `## 🔄 VORHERIGER OUTPUT (ZU VERBESSERN!)
 ${JSON.stringify(previousContentPack, null, 2)}

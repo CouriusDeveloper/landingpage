@@ -39,32 +39,38 @@ ${agentContext.systemPromptAddition}
 
 ## PFLICHT-DATEIEN (ALLE MÜSSEN GENERIERT WERDEN!):
 
-### Core Components:
-1. src/components/Header.tsx - Navigation mit Logo, Links, Mobile Menu, ThemeToggle
-2. src/components/Footer.tsx - Footer mit Links, Copyright, Social
-3. src/components/ThemeProvider.tsx - Context für Light/Dark/System Mode
-4. src/components/ThemeToggle.tsx - Toggle Button: Light ☀️, Dark 🌙, System 💻
-5. src/components/sections/index.ts - BARREL FILE
+### Layout Components (src/components/layout/):
+1. src/components/layout/Header.tsx - Navigation mit Logo, Links, Mobile Menu, ThemeToggle
+2. src/components/layout/Footer.tsx - Footer mit Links, Copyright, Social
+3. src/components/layout/ThemeProvider.tsx - Context für Light/Dark/System Mode
+4. src/components/layout/ThemeToggle.tsx - Toggle Button: Light ☀️, Dark 🌙, System 💻
 
-### Section Components:
-6. src/components/sections/HeroSection.tsx
-7. src/components/sections/FeaturesSection.tsx
-8. src/components/sections/CtaSection.tsx
-9. src/components/sections/AboutSection.tsx
-10. src/components/sections/ContactSection.tsx
-11. src/components/sections/LegalSection.tsx
+### Section Components (src/components/sections/landing/):
+5. src/components/sections/landing/index.ts - BARREL FILE
+6. src/components/sections/landing/HeroSection.tsx
+7. src/components/sections/landing/FeaturesSection.tsx
+8. src/components/sections/landing/CtaSection.tsx
+9. src/components/sections/landing/AboutSection.tsx
+10. src/components/sections/landing/ContactSection.tsx
+11. src/components/sections/landing/LegalSection.tsx
+
+### UI Components (src/components/ui/):
+12. src/components/ui/Motion.tsx - FadeIn, SlideIn, StaggerContainer, StaggerItem, ScaleOnHover
+13. src/components/ui/ScrollProgress.tsx - Scroll progress bar
+14. src/components/ui/BackToTop.tsx - Back to top button
 
 ### Config Files:
-12. src/app/layout.tsx - Root Layout mit ThemeProvider
-13. src/app/globals.css - CSS Variables für Theme + Tailwind
-14. tailwind.config.ts - darkMode: 'class'
-15. tsconfig.json - @/ path alias
-16. next.config.js - module.exports = { reactStrictMode: true }
-17. package.json
+15. src/app/layout.tsx - Root Layout mit ThemeProvider
+16. src/app/globals.css - CSS Variables für Theme + Tailwind
+17. tailwind.config.ts - darkMode: 'class'
+18. tsconfig.json - @/ path alias
+19. next.config.js - module.exports = { reactStrictMode: true }
+20. postcss.config.js - PostCSS Config für Tailwind (PFLICHT!)
+21. package.json
 
 ## 🌗 DARK MODE (PFLICHT!):
 
-### ThemeProvider.tsx:
+### ThemeProvider.tsx (src/components/layout/ThemeProvider.tsx):
 \`\`\`tsx
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
@@ -94,7 +100,7 @@ export const useTheme = () => useContext(ThemeContext)!
 export default ThemeProvider
 \`\`\`
 
-### ThemeToggle.tsx:
+### ThemeToggle.tsx (src/components/layout/ThemeToggle.tsx):
 \`\`\`tsx
 'use client'
 import { Sun, Moon, Monitor } from 'lucide-react'
@@ -118,7 +124,9 @@ export { ThemeToggle }
 ### layout.tsx:
 \`\`\`tsx
 import { Inter } from 'next/font/google'
-import { ThemeProvider } from '@/components/ThemeProvider'
+import { ThemeProvider } from '@/components/layout/ThemeProvider'
+import { ScrollProgress } from '@/components/ui/ScrollProgress'
+import { BackToTop } from '@/components/ui/BackToTop'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -128,7 +136,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <ScrollProgress />
+          {children}
+          <BackToTop />
+        </ThemeProvider>
       </body>
     </html>
   )
@@ -146,24 +158,206 @@ export default {
 } satisfies Config
 \`\`\`
 
-### globals.css:
+### globals.css (src/app/globals.css):
 \`\`\`css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root { --color-primary: #PRIMARY; --color-secondary: #SECONDARY; --color-background: #ffffff; --color-text: #1f2937; }
-.dark { --color-background: #0f172a; --color-text: #f1f5f9; }
-body { background-color: var(--color-background); color: var(--color-text); }
+:root {
+  --color-primary: #PRIMARY;
+  --color-secondary: #SECONDARY;
+}
+
+.dark {
+  --color-background: #0f172a;
+  --color-text: #f1f5f9;
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    @apply antialiased bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-slate-900 dark:text-white font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .section { @apply py-16 md:py-24; }
+  .container-custom { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
+  .card {
+    @apply bg-white dark:bg-slate-800 rounded-xl shadow-lg dark:shadow-slate-900/50 p-6 md:p-8;
+    @apply border border-slate-100 dark:border-slate-700;
+  }
+  .input {
+    @apply w-full px-4 py-3 rounded-lg border;
+    @apply bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600;
+    @apply text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500;
+    @apply focus:ring-2 focus:ring-primary focus:border-transparent transition-colors;
+  }
+}
+
+.btn-hover { @apply transition-all duration-300 ease-out; }
+.btn-hover:hover { @apply transform -translate-y-0.5 shadow-lg; }
+.card-hover { @apply transition-all duration-300 ease-out; }
+.card-hover:hover { @apply transform -translate-y-1 shadow-xl; }
 \`\`\`
 
-## SECTION PROPS (alle optional):
+## 🎬 MOTION COMPONENTS (src/components/ui/Motion.tsx):
+\`\`\`tsx
+'use client'
+
+import { motion, useInView, type Variants } from 'framer-motion'
+import { useRef, type ReactNode } from 'react'
+
+// Fade in from bottom
+export function FadeIn({ children, delay = 0, duration = 0.5, className = '' }: { children: ReactNode; delay?: number; duration?: number; className?: string }) {
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: '-50px' })
+  return (
+    <motion.div ref={ref} initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }} transition={{ duration, delay, ease: 'easeOut' }} className={className}>
+      {children}
+    </motion.div>
+  )
+}
+
+// Slide in from direction
+export function SlideIn({ children, direction = 'left', delay = 0, className = '' }: { children: ReactNode; direction?: 'left' | 'right' | 'up' | 'down'; delay?: number; className?: string }) {
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: '-50px' })
+  const variants: Record<string, { x?: number; y?: number }> = {
+    left: { x: -50 }, right: { x: 50 }, up: { y: -50 }, down: { y: 50 }
+  }
+  const initial = { opacity: 0, ...variants[direction] }
+  return (
+    <motion.div ref={ref} initial={initial} animate={isInView ? { opacity: 1, x: 0, y: 0 } : initial} transition={{ duration: 0.6, delay, ease: 'easeOut' }} className={className}>
+      {children}
+    </motion.div>
+  )
+}
+
+// Stagger container for lists
+export function StaggerContainer({ children, className = '', staggerDelay = 0.1 }: { children: ReactNode; className?: string; staggerDelay?: number }) {
+  return (
+    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={{ visible: { transition: { staggerChildren: staggerDelay } } }} className={className}>
+      {children}
+    </motion.div>
+  )
+}
+
+// Stagger item (child of StaggerContainer)
+export function StaggerItem({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } } }} className={className}>
+      {children}
+    </motion.div>
+  )
+}
+
+// Scale on hover
+export function ScaleOnHover({ children, scale = 1.02, className = '' }: { children: ReactNode; scale?: number; className?: string }) {
+  return (
+    <motion.div whileHover={{ scale }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 400, damping: 17 }} className={className}>
+      {children}
+    </motion.div>
+  )
+}
+\`\`\`
+
+## 📜 SCROLL PROGRESS (src/components/ui/ScrollProgress.tsx):
+\`\`\`tsx
+'use client'
+import { motion, useScroll, useSpring } from 'framer-motion'
+
+export function ScrollProgress() {
+  const { scrollYProgress } = useScroll()
+  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 })
+  return <motion.div className="fixed top-0 left-0 right-0 h-1 bg-primary origin-left z-50" style={{ scaleX }} />
+}
+\`\`\`
+
+## ⬆️ BACK TO TOP (src/components/ui/BackToTop.tsx):
+\`\`\`tsx
+'use client'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowUp } from 'lucide-react'
+
+export function BackToTop() {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 400)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.button
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-8 right-8 p-3 rounded-full bg-primary text-white shadow-lg hover:opacity-90 z-40"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </motion.button>
+      )}
+    </AnimatePresence>
+  )
+}
+\`\`\`
+
+## 📦 PACKAGE.JSON (VOLLSTÄNDIG MIT devDependencies!):
+\`\`\`json
+{
+  "name": "website",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "framer-motion": "^11.0.0",
+    "lucide-react": "^0.300.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/node": "^20.0.0",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.0.0",
+    "postcss": "^8.0.0"
+  }
+}
+\`\`\`
+
+## 📦 POSTCSS.CONFIG.JS (PFLICHT für Tailwind!):
+\`\`\`js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+\`\`\`
+
+## SECTION PROPS (alle optional, verwende undefined statt null!):
+interface FeatureProps { icon?: string; title?: string; description?: string }
 interface HeroSectionProps { headline?: string; subheadline?: string; ctaText?: string; ctaHref?: string; image?: string }
-interface FeaturesSectionProps { title?: string; features?: { icon?: string; title?: string; description?: string }[] }
+interface FeaturesSectionProps { title?: string; features?: FeatureProps[] }
 interface CtaSectionProps { title?: string; description?: string; ctaText?: string; ctaHref?: string }
 interface AboutSectionProps { title?: string; description?: string; team?: { name?: string; role?: string }[] }
 interface ContactSectionProps { title?: string; description?: string; email?: string; phone?: string; address?: string }
 interface LegalSectionProps { title?: string; content?: string }
+
+⚠️ WICHTIG: Verwende NIEMALS null für Props! Nutze undefined oder lasse die Property weg.
 
 ## EXPORT REGELN:
 \`\`\`tsx
@@ -173,7 +367,7 @@ export default ComponentName
 export { ComponentName }
 \`\`\`
 
-## BARREL FILE (src/components/sections/index.ts):
+## BARREL FILE (src/components/sections/landing/index.ts):
 export { default as HeroSection } from './HeroSection'
 export { default as FeaturesSection } from './FeaturesSection'
 export { default as CtaSection } from './CtaSection'
@@ -186,7 +380,7 @@ export { default as LegalSection } from './LegalSection'`
     prompt += `
 
 ## 🍪 COOKIE CONSENT:
-Generiere: src/components/CookieConsent.tsx
+Generiere: src/components/layout/CookieConsent.tsx
 - Zeige Banner wenn kein Consent
 - "Nur notwendige" und "Alle akzeptieren" Buttons
 - Speichere in localStorage
@@ -236,7 +430,7 @@ Generiere:
 - sanity/schemas/post.ts, category.ts
 - src/app/blog/page.tsx
 - src/app/blog/[slug]/page.tsx
-- src/components/sections/BlogSection.tsx
+- src/components/sections/blog/BlogSection.tsx
 - 1 Sample Blog Post Content`
   }
 
@@ -247,7 +441,7 @@ Generiere:
 ## 📧 KONTAKTFORMULAR:
 Generiere:
 - src/lib/actions/contact.ts (Server Action mit Resend)
-- src/components/ContactForm.tsx ('use client')`
+- src/components/sections/contact/ContactForm.tsx ('use client')`
   }
 
   // SEO

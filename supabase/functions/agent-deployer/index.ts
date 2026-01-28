@@ -29,6 +29,7 @@ function buildPackageJson(
     next: '^14.2.0',
     react: '^18.2.0',
     'react-dom': '^18.2.0',
+    'framer-motion': '^11.0.0',
     'lucide-react': '^0.300.0',
   }
   
@@ -179,16 +180,13 @@ Deno.serve(async (req) => {
       const vercelFiles = files.map(f => ({
         file: f.file_path,
         data: f.content,
-      }))
+      })).filter(f => f.file !== 'package.json') // package.json wird vom deployer generiert
 
-      // Add package.json if not exists - mit allen Dependencies basierend auf Addons
-      const hasPackageJson = files.some(f => f.file_path === 'package.json')
-      if (!hasPackageJson) {
-        vercelFiles.push({
-          file: 'package.json',
-          data: buildPackageJson(safeProjectName, agentContext),
-        })
-      }
+      // IMMER package.json mit korrekten Dependencies generieren (überschreibt ggf. unvollständige vom Agent)
+      vercelFiles.push({
+        file: 'package.json',
+        data: buildPackageJson(safeProjectName, agentContext),
+      })
       
       // Build environment variables
       const envVars = buildEnvVars(project, agentContext)
