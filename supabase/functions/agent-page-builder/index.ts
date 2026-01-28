@@ -279,31 +279,18 @@ Generate complete page.tsx with full dark mode support.`
 
         await updatePipelineMetrics(meta.pipelineRunId, inputTokens + outputTokens, costUsd)
 
-        // Check coordination - nur DIESER Attempt zählt!
+        // Check coordination - count only completed page-builder runs
         const expectedCount = (meta.expectedAgentCount as number) || 1
         
-        // Hole den Zeitstempel vom code-renderer als Referenz
-        const { data: codeRendererRun } = await supabase
-          .from('agent_runs')
-          .select('created_at')
-          .eq('pipeline_run_id', meta.pipelineRunId)
-          .eq('agent_name', 'code-renderer')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
-        
-        const cutoffTime = codeRendererRun?.created_at || new Date(Date.now() - 600000).toISOString()
-        
+        // Count ONLY completed page-builder runs for this pipeline (NOT shared-components!)
         const { count } = await supabase
           .from('agent_runs')
           .select('*', { count: 'exact', head: true })
           .eq('pipeline_run_id', meta.pipelineRunId)
-          .eq('phase', 4)
+          .eq('agent_name', 'page-builder')
           .eq('status', 'completed')
-          .in('agent_name', ['shared-components', 'page-builder'])
-          .gte('created_at', cutoffTime)
 
-        console.log(`[PAGE-BUILDER] /${pageSlug} Coordination: ${count}/${expectedCount} (since ${cutoffTime})`)
+        console.log(`[PAGE-BUILDER] /${pageSlug} Coordination: ${count}/${expectedCount} page-builders completed`)
 
         if (count && count >= expectedCount) {
           console.log('[PAGE-BUILDER] All Phase 4 complete! Triggering Phase 5/6...')
