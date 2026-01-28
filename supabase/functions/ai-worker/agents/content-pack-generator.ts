@@ -363,7 +363,7 @@ Make the content compelling, professional, and conversion-focused.`,
     systemPrompt: CONTENT_PACK_SYSTEM_PROMPT,
     userPrompt,
     config: {
-      maxTokens: 16000,
+      maxTokens: 20000,
       timeout: 180000,
     },
   })

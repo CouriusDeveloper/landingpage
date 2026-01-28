@@ -15,11 +15,11 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur-lg">
-      <div className="mx-auto flex max-w-content items-center justify-between px-4 py-4">
+      <div className="mx-auto grid max-w-content grid-cols-3 items-center px-4 py-4">
         <NavLink to="/" className="font-heading text-xl font-semibold text-primary" onClick={() => setIsOpen(false)}>
           {/* Branding entfernt */}
         </NavLink>
-        <nav className="hidden items-center gap-6 text-sm font-semibold text-secondary lg:flex">
+        <nav className="hidden items-center justify-center gap-6 text-sm font-semibold text-secondary lg:flex">
           {navAnchors.slice(0, 5).map((link) => (
             <NavLink
               key={link.path}
@@ -32,7 +32,7 @@ export function Header() {
             </NavLink>
           ))}
         </nav>
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center justify-end gap-3 lg:flex">
           <Button to={primaryCta.to} size="md" variant="secondary">
             {primaryCta.label}
           </Button>
@@ -52,7 +52,7 @@ export function Header() {
           )}
         </div>
         <button
-          className="rounded-full border border-slate-200 p-2 text-primary lg:hidden"
+          className="col-start-3 ml-auto rounded-full border border-slate-200 p-2 text-primary lg:hidden"
           onClick={() => setIsOpen((prev) => !prev)}
           aria-label="Navigation öffnen"
         >

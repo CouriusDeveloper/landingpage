@@ -1,6 +1,6 @@
 // Supabase Edge Function: ai-worker
 // Generates complete website code with full context
-// Models: gpt-5.2-pro-2025-12-11 (planning), gpt-5.2-codex (code)
+// Models: gpt-5.2-chat-latest (planning), gpt-5.2-codex (code)
 // Deploys to Vercel for live preview
 // Supports Sanity CMS integration when addon is booked
 //

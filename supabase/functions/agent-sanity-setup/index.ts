@@ -959,17 +959,31 @@ function mapToSanityType(inferredType: string): string {
 
 // =============================================================================
 // HELPER: Trigger next agent
+// Phase 5 Flow: sanity-setup → resend-setup (if booking) → analytics (if enterprise) → deployer
 // =============================================================================
 async function triggerNextAgent(envelope: AgentEnvelope, meta: AgentEnvelope['meta']) {
   const addons = envelope.project.addons || []
+  const packageType = envelope.project.packageType || 'starter'
   const hasBooking = addons.includes('booking_form')
+  const hasAnalytics = packageType === 'enterprise' || addons.includes('analytics')
 
   if (hasBooking) {
+    // Next: resend-setup
+    console.log('[SANITY-SETUP] Triggering resend-setup...')
     await triggerAgent('resend-setup', {
       ...envelope,
       meta: { ...meta, agentName: 'email', phase: 5, sequence: 2, timestamp: new Date().toISOString() },
     })
+  } else if (hasAnalytics) {
+    // Next: analytics (skip resend)
+    console.log('[SANITY-SETUP] Triggering analytics...')
+    await triggerAgent('analytics', {
+      ...envelope,
+      meta: { ...meta, agentName: 'analytics', phase: 5, sequence: 3, timestamp: new Date().toISOString() },
+    })
   } else {
+    // Next: deployer (skip resend + analytics)
+    console.log('[SANITY-SETUP] Triggering deployer...')
     await triggerAgent('deployer', {
       ...envelope,
       meta: { ...meta, agentName: 'deployer', phase: 6, sequence: 1, timestamp: new Date().toISOString() },

@@ -37,7 +37,7 @@ export type AgentName =
   | 'editor'
   | 'project-manager'
 
-export type ModelName = 'gpt-5.2-pro' | 'gpt-5.2-codex'
+export type ModelName = 'gpt-5.2-chat-latest' | 'gpt-5.2-codex'
 
 // =============================================================================
 // AGENT INPUT/OUTPUT TYPES

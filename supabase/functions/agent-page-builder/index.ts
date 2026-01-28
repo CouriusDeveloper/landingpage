@@ -184,20 +184,47 @@ Deno.serve(async (req) => {
     
     console.log(`[PAGE-BUILDER] /${pageSlug} - Addons: ${Object.entries(agentContext.addons).filter(([,v]) => v).map(([k]) => k).join(', ') || 'none'}`)
 
-    // Build prompt with addon context
+    // Build prompt with addon context AND full project info
     const userPrompt = `Respond with valid JSON only.
-Slug: ${pageSlug}
-Path: ${pageSlug === 'home' || pageSlug === '' ? 'src/app/page.tsx' : `src/app/${pageSlug}/page.tsx`}
-CONTENT: ${JSON.stringify(pageContent)}
-SITE: ${JSON.stringify(contentPack.siteSettings)}
-COLORS: ${JSON.stringify(colors)}
-NAV: ${JSON.stringify(contentPack.navigation)}
-${pageSlug === 'impressum' && legal?.imprint ? `IMPRINT: ${JSON.stringify(legal.imprint)}` : ''}
-${pageSlug === 'datenschutz' && legal?.privacy ? `PRIVACY: ${JSON.stringify(legal.privacy)}` : ''}
-${agentContext.techStack.cms.enabled ? `CMS: Sanity - fetch data with GROQ, use async Server Component` : ''}
-${agentContext.techStack.email.enabled && (pageSlug === 'kontakt' || pageSlug === 'contact') ? `BOOKING: Include contact form with Server Action using Resend API` : ''}
-${agentContext.techStack.blog.enabled && pageSlug === 'blog' ? `BLOG: Fetch blog posts from Sanity, display grid of posts` : ''}
-DARK_MODE: Alle Komponenten müssen dark: Varianten nutzen!
+
+## UNTERNEHMEN:
+- Name: ${project.name}
+- Branche: ${project.industry || 'Nicht angegeben'}
+- Zielgruppe: ${project.targetAudience || 'Allgemein'}
+- USPs: ${project.usps?.join(', ') || 'Keine'}
+- Brand Voice: ${project.brandVoice || 'professional'}
+- Standort: ${project.location?.city || ''}, ${project.location?.country || 'Deutschland'}
+
+## PAGE:
+- Slug: ${pageSlug}
+- Path: ${pageSlug === 'home' || pageSlug === '' ? 'src/app/page.tsx' : `src/app/${pageSlug}/page.tsx`}
+
+## PAGE CONTENT:
+${JSON.stringify(pageContent, null, 2)}
+
+## SITE SETTINGS:
+${JSON.stringify(contentPack.siteSettings, null, 2)}
+
+## COLORS:
+${JSON.stringify(colors, null, 2)}
+
+## NAVIGATION:
+${JSON.stringify(contentPack.navigation, null, 2)}
+
+${pageSlug === 'impressum' && legal?.imprint ? `## IMPRESSUM:\n${JSON.stringify(legal.imprint, null, 2)}` : ''}
+${pageSlug === 'datenschutz' && legal?.privacy ? `## DATENSCHUTZ:\n${JSON.stringify(legal.privacy, null, 2)}` : ''}
+
+## TECH STACK:
+${agentContext.techStack.cms.enabled ? '- CMS: Sanity - fetch data with GROQ, use async Server Component' : '- CMS: KEINS'}
+${agentContext.techStack.email.enabled && (pageSlug === 'kontakt' || pageSlug === 'contact') ? '- KONTAKTFORMULAR: Include contact form with Server Action using Resend API' : ''}
+${agentContext.techStack.blog.enabled && pageSlug === 'blog' ? '- BLOG: Fetch blog posts from Sanity, display grid of posts' : ''}
+
+## WICHTIG:
+- DARK MODE: Alle Komponenten müssen dark: Varianten nutzen!
+- Passe Texte an die Branche "${project.industry || 'Allgemein'}" an
+- Berücksichtige die Zielgruppe: ${project.targetAudience || 'Allgemein'}
+- Hebe die USPs hervor: ${project.usps?.join(', ') || 'Keine'}
+
 Generate complete page.tsx with full dark mode support.`
 
     // Get dynamic system prompt based on agent context
@@ -217,7 +244,7 @@ Generate complete page.tsx with full dark mode support.`
           systemPrompt,
           userPrompt,
           'gpt-5.2-codex',
-          8000
+          20000
         )
 
         const output: PageBuilderOutput = JSON.parse(content)
@@ -279,17 +306,48 @@ Generate complete page.tsx with full dark mode support.`
         console.log(`[PAGE-BUILDER] /${pageSlug} Coordination: ${count}/${expectedCount} (since ${cutoffTime})`)
 
         if (count && count >= expectedCount) {
-          console.log('[PAGE-BUILDER] All Phase 4 complete! Triggering Phase 5 (Sanity Setup)...')
-          await supabase
-            .from('pipeline_runs')
-            .update({ status: 'phase_5' })
-            .eq('id', meta.pipelineRunId)
+          console.log('[PAGE-BUILDER] All Phase 4 complete! Triggering Phase 5/6...')
+          
+          // Determine next agent based on addons
+          const addons = project.addons || []
+          const packageType = project.packageType || 'starter'
+          const hasCms = addons.includes('cms_base')
+          const hasBooking = addons.includes('booking_form')
+          const hasAnalytics = packageType === 'enterprise' || addons.includes('analytics')
 
-          // Phase 5: Sanity Setup → Resend Setup → Deployer
-          await triggerAgent('sanity-setup', {
-            ...envelope,
-            meta: { ...meta, agentName: 'cms', phase: 5, sequence: 1, timestamp: new Date().toISOString() },
-          })
+          if (hasCms) {
+            // CMS gebucht → sanity-setup
+            console.log('[PAGE-BUILDER] CMS addon detected, triggering sanity-setup...')
+            await supabase.from('pipeline_runs').update({ status: 'phase_5' }).eq('id', meta.pipelineRunId)
+            await triggerAgent('sanity-setup', {
+              ...envelope,
+              meta: { ...meta, agentName: 'cms', phase: 5, sequence: 1, timestamp: new Date().toISOString() },
+            })
+          } else if (hasBooking) {
+            // Kein CMS, aber Booking → resend-setup
+            console.log('[PAGE-BUILDER] Booking addon detected (no CMS), triggering resend-setup...')
+            await supabase.from('pipeline_runs').update({ status: 'phase_5' }).eq('id', meta.pipelineRunId)
+            await triggerAgent('resend-setup', {
+              ...envelope,
+              meta: { ...meta, agentName: 'email', phase: 5, sequence: 2, timestamp: new Date().toISOString() },
+            })
+          } else if (hasAnalytics) {
+            // Kein CMS/Booking, aber Analytics → analytics
+            console.log('[PAGE-BUILDER] Analytics addon detected (no CMS/Booking), triggering analytics...')
+            await supabase.from('pipeline_runs').update({ status: 'phase_5' }).eq('id', meta.pipelineRunId)
+            await triggerAgent('analytics', {
+              ...envelope,
+              meta: { ...meta, agentName: 'analytics', phase: 5, sequence: 3, timestamp: new Date().toISOString() },
+            })
+          } else {
+            // Keine Phase 5 Agents → direkt deployer
+            console.log('[PAGE-BUILDER] No Phase 5 addons, triggering deployer...')
+            await supabase.from('pipeline_runs').update({ status: 'phase_6' }).eq('id', meta.pipelineRunId)
+            await triggerAgent('deployer', {
+              ...envelope,
+              meta: { ...meta, agentName: 'deployer', phase: 6, sequence: 1, timestamp: new Date().toISOString() },
+            })
+          }
         }
       } catch (error) {
         console.error(`[PAGE-BUILDER] /${pageSlug} Background error:`, error)

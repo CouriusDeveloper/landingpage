@@ -196,11 +196,27 @@ Deno.serve(async (req) => {
       completed_at: new Date().toISOString(),
     })
 
-    // Trigger Deployer
-    await triggerAgent('deployer', {
-      ...envelope,
-      meta: { ...meta, agentName: 'deployer', phase: 6, sequence: 1, timestamp: new Date().toISOString() },
-    })
+    // Check if analytics should run next
+    const packageType = envelope.project.packageType || 'starter'
+    const addons = envelope.project.addons || []
+    const hasAnalytics = packageType === 'enterprise' || addons.includes('analytics')
+
+    if (hasAnalytics) {
+      console.log('[RESEND-SETUP] Triggering analytics...')
+      await triggerAgent('analytics', {
+        ...envelope,
+        meta: { ...meta, agentName: 'analytics', phase: 5, sequence: 3, timestamp: new Date().toISOString() },
+      })
+    } else {
+      console.log('[RESEND-SETUP] Triggering deployer...')
+      await triggerAgent('deployer', {
+        ...envelope,
+        meta: { ...meta, agentName: 'deployer', phase: 6, sequence: 1, timestamp: new Date().toISOString() },
+      })
+    }
+
+    const nextAgent = hasAnalytics ? 'analytics' : 'deployer'
+    const nextPhase = hasAnalytics ? 5 : 6
 
     const response: AgentResponse<ResendSetupOutput> = {
       success: true,
@@ -209,8 +225,8 @@ Deno.serve(async (req) => {
       output,
       quality: { score: 10, passed: true, issues: [], criticalCount: 0 },
       control: {
-        nextPhase: 6,
-        nextAgents: ['deployer'],
+        nextPhase,
+        nextAgents: [nextAgent],
         shouldRetry: false,
         retryAgent: null,
         retryReason: null,

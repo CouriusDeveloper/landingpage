@@ -103,7 +103,7 @@ Erstelle ein CMS-Schema das alle editierbaren Inhalte abdeckt als JSON.`
     const { content, inputTokens, outputTokens, model } = await callOpenAI(
       SYSTEM_PROMPT,
       userPrompt,
-      'gpt-5.2-pro-2025-12-11',
+      'gpt-5.2-chat-latest',
       8000
     )
 

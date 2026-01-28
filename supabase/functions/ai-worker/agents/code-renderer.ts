@@ -159,7 +159,7 @@ export async function runCodeRenderer(input: CodeRendererInput): Promise<CodeRen
     userPrompt,
     config: {
       model: 'gpt-5.2-codex',
-      maxTokens: 32000,
+      maxTokens: 20000,
       timeout: 300000,
       temperature: 0.2,
     },

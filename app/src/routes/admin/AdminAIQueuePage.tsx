@@ -51,11 +51,22 @@ const statusColors: Record<string, { bg: string; text: string; label: string }> 
 }
 
 const agentLabels: Record<string, string> = {
-  'agent-collector': 'Collector',
-  'agent-code-collector': 'Code Collector',
-  'agent-shared-components': 'Shared Components',
-  'agent-page-builder': 'Page Builder',
-  'agent-deployer': 'Deployer',
+  'strategist': 'Strategist',
+  'seo': 'SEO',
+  'legal': 'Legal',
+  'visual': 'Visual',
+  'image': 'Image',
+  'collector': 'Collector',
+  'content-pack': 'Content Pack',
+  'editor': 'Editor',
+  'code-renderer': 'Code Renderer',
+  'shared-components': 'Shared Components',
+  'section-generator': 'Section Generator',
+  'page-builder': 'Page Builder',
+  'sanity-setup': 'Sanity Setup',
+  'resend-setup': 'Resend Setup',
+  'analytics': 'Analytics',
+  'deployer': 'Deployer',
 }
 
 export function AdminAIQueuePage() {
@@ -313,11 +324,20 @@ export function AdminAIQueuePage() {
                           {status.label}
                         </span>
                       </div>
-                      {pipeline.total_retries > 0 && (
-                        <span className="text-xs text-amber-600">
-                          {pipeline.total_retries} Retries
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {pipeline.total_retries > 0 && (
+                          <span className="text-xs text-amber-600">
+                            {pipeline.total_retries} Retries
+                          </span>
+                        )}
+                        <Link
+                          to={`/admin/pipeline/${pipeline.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-accent hover:text-white transition-colors"
+                        >
+                          Monitor →
+                        </Link>
+                      </div>
                     </div>
                     
                     {/* Progress Bar */}

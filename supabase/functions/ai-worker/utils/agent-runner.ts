@@ -9,8 +9,8 @@ import type { AgentConfig, AgentName, AgentError, AgentErrorCode } from '../type
 // =============================================================================
 
 export const MODELS = {
-  // GPT-5.2 Pro for strategic/creative work
-  PRO: 'gpt-5.2-pro-2025-12-11',
+  // GPT-5.2 Chat for strategic/creative work
+  CHAT: 'gpt-5.2-chat-latest',
   // GPT-5.2 Codex for code generation
   CODEX: 'gpt-5.2-codex',
 } as const
@@ -19,35 +19,35 @@ export const MODELS = {
 // Keep timeouts short to avoid hitting the limit
 export const DEFAULT_AGENT_CONFIGS: Record<AgentName, Partial<AgentConfig>> = {
   strategist: {
-    model: 'gpt-5.2-pro',
+    model: 'gpt-5.2-chat-latest',
     temperature: 0.7,
     maxTokens: 4000,
     timeout: 45000,
     retries: 1,
   },
   'content-pack-generator': {
-    model: 'gpt-5.2-pro',
+    model: 'gpt-5.2-chat-latest',
     temperature: 0.6,
     maxTokens: 8000,
     timeout: 50000,
     retries: 1,
   },
   'seo-specialist': {
-    model: 'gpt-5.2-pro',
+    model: 'gpt-5.2-chat-latest',
     temperature: 0.4,
     maxTokens: 2000,
     timeout: 30000,
     retries: 1,
   },
   'legal-expert': {
-    model: 'gpt-5.2-pro',
+    model: 'gpt-5.2-chat-latest',
     temperature: 0.3,
     maxTokens: 4000,
     timeout: 40000,
     retries: 1,
   },
   'visual-designer': {
-    model: 'gpt-5.2-pro',
+    model: 'gpt-5.2-chat-latest',
     temperature: 0.5,
     maxTokens: 2000,
     timeout: 30000,
@@ -56,19 +56,19 @@ export const DEFAULT_AGENT_CONFIGS: Record<AgentName, Partial<AgentConfig>> = {
   'code-renderer': {
     model: 'gpt-5.2-codex',
     temperature: 0.2,
-    maxTokens: 16000,
+    maxTokens: 20000,
     timeout: 50000,
     retries: 1,
   },
   editor: {
-    model: 'gpt-5.2-pro',
+    model: 'gpt-5.2-chat-latest',
     temperature: 0.4,
     maxTokens: 4000,
     timeout: 40000,
     retries: 1,
   },
   'project-manager': {
-    model: 'gpt-5.2-pro',
+    model: 'gpt-5.2-chat-latest',
     temperature: 0.3,
     maxTokens: 2000,
     timeout: 30000,
@@ -197,7 +197,7 @@ export async function runAgent<T>(
     ...options.config,
   }
   
-  const model = config.model === 'gpt-5.2-pro' ? MODELS.PRO : MODELS.CODEX
+  const model = config.model === 'gpt-5.2-chat-latest' ? MODELS.CHAT : MODELS.CODEX
   const maxRetries = config.retries ?? 2
   const timeout = config.timeout ?? 120000
   

@@ -1,6 +1,7 @@
 // =============================================================================
-// AGENT: ANALYTICS (Phase 5) - Optional
-// Generates analytics setup and tracking code
+// AGENT: ANALYTICS (Phase 5) - DSGVO-konforme Analytics
+// Triggered by: sanity-setup or resend-setup (for enterprise/analytics addon)
+// Triggers: deployer
 // =============================================================================
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
@@ -12,7 +13,6 @@ import {
   calculateCost,
   updatePipelineMetrics,
   loadAgentOutput,
-  checkPhase5Complete,
   triggerAgent,
   updatePipelineStatus,
 } from '../_shared/agent-utils.ts'
@@ -105,7 +105,7 @@ Verwende Plausible Analytics als Privacy-freundliche Alternative.`
     const { content, inputTokens, outputTokens, model } = await callOpenAI(
       SYSTEM_PROMPT,
       userPrompt,
-      'gpt-5.2-pro-2025-12-11',
+      'gpt-5.2-chat-latest',
       6000
     )
 
@@ -150,19 +150,14 @@ Verwende Plausible Analytics als Privacy-freundliche Alternative.`
 
     await updatePipelineMetrics(meta.pipelineRunId, inputTokens + outputTokens, costUsd)
 
-    // Check if Phase 5 is complete
-    const phase5Complete = await checkPhase5Complete(meta.pipelineRunId, project)
+    // Analytics is always the last Phase 5 agent - trigger deployer
+    console.log('[ANALYTICS] Triggering Phase 6 (Deployer)...')
+    await updatePipelineStatus(meta.pipelineRunId, 'phase_6')
     
-    if (phase5Complete) {
-      console.log('[ANALYTICS] Phase 5 complete, triggering Phase 6 (Deployer)...')
-      await updatePipelineStatus(meta.pipelineRunId, 'phase_6')
-      
-      const deployerEnvelope: AgentEnvelope = {
-        ...envelope,
-        meta: { ...meta, agentName: 'deployer', phase: 6, sequence: 1, timestamp: new Date().toISOString() },
-      }
-      await triggerAgent('deployer', deployerEnvelope)
-    }
+    await triggerAgent('deployer', {
+      ...envelope,
+      meta: { ...meta, agentName: 'deployer', phase: 6, sequence: 1, timestamp: new Date().toISOString() },
+    })
 
     const response: AgentResponse<AnalyticsOutput> = {
       success: true,
@@ -171,8 +166,8 @@ Verwende Plausible Analytics als Privacy-freundliche Alternative.`
       output,
       quality: { score: 8.5, passed: true, issues: [], criticalCount: 0 },
       control: {
-        nextPhase: phase5Complete ? 6 : null,
-        nextAgents: phase5Complete ? ['deployer'] : [],
+        nextPhase: 6,
+        nextAgents: ['deployer'],
         shouldRetry: false,
         retryAgent: null,
         retryReason: null,

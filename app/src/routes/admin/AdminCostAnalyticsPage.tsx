@@ -35,11 +35,22 @@ type AgentCost = {
 }
 
 const agentLabels: Record<string, string> = {
-  'agent-collector': 'Collector',
-  'agent-code-collector': 'Code Collector',
-  'agent-shared-components': 'Shared Components',
-  'agent-page-builder': 'Page Builder',
-  'agent-deployer': 'Deployer',
+  'strategist': 'Strategist',
+  'seo': 'SEO',
+  'legal': 'Legal',
+  'visual': 'Visual',
+  'image': 'Image',
+  'collector': 'Collector',
+  'content-pack': 'Content Pack',
+  'editor': 'Editor',
+  'code-renderer': 'Code Renderer',
+  'shared-components': 'Shared Components',
+  'section-generator': 'Section Generator',
+  'page-builder': 'Page Builder',
+  'sanity-setup': 'Sanity Setup',
+  'resend-setup': 'Resend Setup',
+  'analytics': 'Analytics',
+  'deployer': 'Deployer',
 }
 
 export function AdminCostAnalyticsPage() {

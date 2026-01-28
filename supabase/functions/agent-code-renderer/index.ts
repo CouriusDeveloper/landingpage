@@ -1,6 +1,7 @@
 // =============================================================================
-// AGENT: CODE-RENDERER (Phase 4) - Orchestrator für Code-Generierung
-// Triggert: shared-components + page-builder (parallel) → code-collector
+// AGENT: CODE-RENDERER (Phase 4) - Orchestrator für Chunked Code-Generierung
+// NEW ARCHITECTURE: Triggers section-generator per section → assembly
+// Much faster: Parallel small API calls instead of one large call per page
 // =============================================================================
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
@@ -20,7 +21,9 @@ import type {
 
 interface CodeRendererOutput {
   triggeredAgents: string[]
+  totalSections: number
   pageCount: number
+  architecture: 'chunked'
 }
 
 Deno.serve(async (req) => {
@@ -35,7 +38,12 @@ Deno.serve(async (req) => {
     const envelope: AgentEnvelope = await req.json()
     const { meta, project } = envelope
     
-    console.log(`[CODE-RENDERER] Starting orchestration (Pipeline: ${meta.pipelineRunId})`)
+    console.log(`[CODE-RENDERER] Starting CHUNKED orchestration (Pipeline: ${meta.pipelineRunId})`)
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
 
     agentRunId = await createAgentRun(
       meta.pipelineRunId,
@@ -43,11 +51,11 @@ Deno.serve(async (req) => {
       'code-renderer',
       meta.phase,
       0,
-      { project: project.name },
+      { mode: 'chunked' },
       meta.attempt
     )
 
-    // Load Content Pack to get pages
+    // Load Content Pack to get pages and sections
     const contentPack = await loadAgentOutput<ContentPackOutput>(meta.pipelineRunId, 'content-pack')
     
     if (!contentPack) {
@@ -55,15 +63,23 @@ Deno.serve(async (req) => {
     }
 
     const pages = contentPack.pages || []
-    const pageSlugs = pages.map(p => p.slug)
     
-    console.log(`[CODE-RENDERER] Found ${pages.length} pages: ${pageSlugs.join(', ')}`)
+    // Count total sections across all pages
+    let totalSections = 0
+    for (const page of pages) {
+      totalSections += (page.sections?.length || 0)
+    }
+    
+    // Add 1 for shared-components (Header, Footer, etc.)
+    const expectedSectionCount = totalSections + 1
+    
+    console.log(`[CODE-RENDERER] Found ${pages.length} pages with ${totalSections} total sections`)
 
     const triggeredAgents: string[] = []
 
-    // 1. Trigger shared-components (Header, Footer, Section-Komponenten)
+    // 1. Trigger shared-components (Header, Footer, Motion, etc.)
     console.log('[CODE-RENDERER] Triggering shared-components...')
-    const sharedEnvelope: AgentEnvelope = {
+    const sharedEnvelope = {
       ...envelope,
       meta: {
         ...meta,
@@ -71,48 +87,64 @@ Deno.serve(async (req) => {
         phase: 4,
         sequence: 0,
         timestamp: new Date().toISOString(),
-        // Für Self-Coordination
-        expectedAgentCount: pages.length + 1, // pages + shared-components
+        expectedSectionCount,
       },
     }
     await triggerAgent('shared-components', sharedEnvelope)
     triggeredAgents.push('shared-components')
 
-    // 2. Trigger page-builder für jede Seite (parallel!)
-    console.log(`[CODE-RENDERER] Triggering ${pages.length} page-builders...`)
-    for (let i = 0; i < pages.length; i++) {
-      const page = pages[i]
-      const pageEnvelope: AgentEnvelope = {
-        ...envelope,
-        meta: {
-          ...meta,
-          agentName: 'page-builder',
-          phase: 4,
-          sequence: i + 1,
-          timestamp: new Date().toISOString(),
-          pageInput: {
-            pageSlug: page.slug,
-            pageIndex: i,
-            totalPages: pages.length,
+    // 2. Trigger section-generator for EACH section of EACH page (massively parallel!)
+    console.log(`[CODE-RENDERER] Triggering ${totalSections} section-generators...`)
+    
+    let sectionSequence = 1
+    for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+      const page = pages[pageIndex]
+      const sections = page.sections || []
+      
+      for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
+        const section = sections[sectionIndex]
+        
+        const sectionEnvelope = {
+          ...envelope,
+          meta: {
+            ...meta,
+            agentName: 'section-generator',
+            phase: 4,
+            sequence: sectionSequence++,
+            timestamp: new Date().toISOString(),
+            sectionInput: {
+              pageSlug: page.slug,
+              pageIndex,
+              sectionIndex,
+              sectionType: section.type,
+              sectionContent: section.content,
+              totalSections: sections.length,
+              totalPages: pages.length,
+            },
+            expectedSectionCount,
           },
-          // Für Self-Coordination: Wie viele Agents müssen fertig sein?
-          expectedAgentCount: pages.length + 1, // pages + shared-components
-        },
+        }
+        
+        await triggerAgent('section-generator', sectionEnvelope)
+        triggeredAgents.push(`section:${page.slug}/${section.type}`)
       }
-      await triggerAgent('page-builder', pageEnvelope)
-      triggeredAgents.push(`page-builder:${page.slug}`)
     }
 
-    // NOTE: KEIN code-collector mehr! Jeder Agent prüft selbst ob alle fertig sind
+    // NOTE: No assembly trigger here!
+    // Each section-generator checks if all sections are complete
+    // The last one to finish triggers the assembly agent
 
     const durationMs = Date.now() - startTime
 
     const output: CodeRendererOutput = {
       triggeredAgents,
+      totalSections,
       pageCount: pages.length,
+      architecture: 'chunked',
     }
 
-    console.log(`[CODE-RENDERER] Orchestration complete: ${triggeredAgents.length} agents triggered in ${durationMs}ms`)
+    console.log(`[CODE-RENDERER] ✅ Orchestration complete: ${triggeredAgents.length} agents triggered in ${durationMs}ms`)
+    console.log(`[CODE-RENDERER] Architecture: CHUNKED (${totalSections} sections parallel)`)
 
     await updateAgentRun(agentRunId, {
       status: 'completed',
@@ -128,7 +160,7 @@ Deno.serve(async (req) => {
       output,
       quality: { score: 10, passed: true, issues: [], criticalCount: 0 },
       control: {
-        nextPhase: null, // code-collector handles next phase
+        nextPhase: null, // assembly handles next phase
         nextAgents: triggeredAgents,
         shouldRetry: false,
         retryAgent: null,

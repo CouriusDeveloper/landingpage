@@ -431,6 +431,11 @@ export async function callOpenAI(
   }
   
   // Use Responses API for newer models (gpt-5.2, etc.)
+  // Note: JSON mode requires the word "json" in the input message
+  const inputWithJsonHint = userPrompt.toLowerCase().includes('json') 
+    ? userPrompt 
+    : `${userPrompt}\n\nRespond with valid JSON only.`
+  
   const response = await fetch(OPENAI_RESPONSES_URL, {
     method: 'POST',
     headers: {
@@ -440,7 +445,7 @@ export async function callOpenAI(
     body: JSON.stringify({
       model,
       instructions: systemPrompt,
-      input: userPrompt,
+      input: inputWithJsonHint,
       max_output_tokens: maxTokens,
       text: { format: { type: 'json_object' } },
     }),
@@ -480,20 +485,85 @@ function extractText(response: any): string {
 // COST CALCULATION
 // =============================================================================
 
-const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
-  'gpt-4o-mini': { input: 0.00015, output: 0.0006 }, // per 1K tokens - very cheap!
-  'gpt-4o': { input: 0.005, output: 0.015 },
-  'gpt-5.2-pro-2025-12-11': { input: 0.01, output: 0.03 },
-  'gpt-5.2-codex': { input: 0.01, output: 0.03 },
+// Prices per 1K tokens (Standard tier, January 2026)
+// Source: https://platform.openai.com/docs/pricing
+const TOKEN_COSTS: Record<string, { input: number; output: number; cachedInput?: number }> = {
+  // GPT-5 Series
+  'gpt-5.2': { input: 0.00175, output: 0.014, cachedInput: 0.000175 },
+  'gpt-5.2-pro': { input: 0.021, output: 0.168 },
+  'gpt-5.2-pro-2025-12-11': { input: 0.021, output: 0.168 },
+  'gpt-5.2-codex': { input: 0.00175, output: 0.014, cachedInput: 0.000175 },
+  'gpt-5.2-chat-latest': { input: 0.00175, output: 0.014, cachedInput: 0.000175 },
+  'gpt-5.1': { input: 0.00125, output: 0.01, cachedInput: 0.000125 },
+  'gpt-5.1-codex': { input: 0.00125, output: 0.01, cachedInput: 0.000125 },
+  'gpt-5.1-codex-max': { input: 0.00125, output: 0.01, cachedInput: 0.000125 },
+  'gpt-5.1-codex-mini': { input: 0.00025, output: 0.002, cachedInput: 0.000025 },
+  'gpt-5.1-chat-latest': { input: 0.00125, output: 0.01, cachedInput: 0.000125 },
+  'gpt-5': { input: 0.00125, output: 0.01, cachedInput: 0.000125 },
+  'gpt-5-codex': { input: 0.00125, output: 0.01, cachedInput: 0.000125 },
+  'gpt-5-chat-latest': { input: 0.00125, output: 0.01, cachedInput: 0.000125 },
+  'gpt-5-pro': { input: 0.015, output: 0.12 },
+  'gpt-5-mini': { input: 0.00025, output: 0.002, cachedInput: 0.000025 },
+  'gpt-5-nano': { input: 0.00005, output: 0.0004, cachedInput: 0.000005 },
+  // GPT-4 Series
+  'gpt-4.1': { input: 0.002, output: 0.008, cachedInput: 0.0005 },
+  'gpt-4.1-mini': { input: 0.0004, output: 0.0016, cachedInput: 0.0001 },
+  'gpt-4.1-nano': { input: 0.0001, output: 0.0004, cachedInput: 0.000025 },
+  'gpt-4o': { input: 0.0025, output: 0.01, cachedInput: 0.00125 },
+  'gpt-4o-2024-05-13': { input: 0.005, output: 0.015 },
+  'gpt-4o-mini': { input: 0.00015, output: 0.0006, cachedInput: 0.000075 },
+  // o-Series (Reasoning Models)
+  'o1': { input: 0.015, output: 0.06, cachedInput: 0.0075 },
+  'o1-pro': { input: 0.15, output: 0.6 },
+  'o1-mini': { input: 0.0011, output: 0.0044, cachedInput: 0.00055 },
+  'o3': { input: 0.002, output: 0.008, cachedInput: 0.0005 },
+  'o3-pro': { input: 0.02, output: 0.08 },
+  'o3-mini': { input: 0.0011, output: 0.0044, cachedInput: 0.00055 },
+  'o3-deep-research': { input: 0.01, output: 0.04, cachedInput: 0.0025 },
+  'o4-mini': { input: 0.0011, output: 0.0044, cachedInput: 0.000275 },
+  'o4-mini-deep-research': { input: 0.002, output: 0.008, cachedInput: 0.0005 },
+  // Realtime & Audio
+  'gpt-realtime': { input: 0.004, output: 0.016, cachedInput: 0.0004 },
+  'gpt-realtime-mini': { input: 0.0006, output: 0.0024, cachedInput: 0.00006 },
+  'gpt-4o-realtime-preview': { input: 0.005, output: 0.02, cachedInput: 0.0025 },
+  'gpt-4o-mini-realtime-preview': { input: 0.0006, output: 0.0024, cachedInput: 0.0003 },
+  'gpt-audio': { input: 0.0025, output: 0.01 },
+  'gpt-audio-mini': { input: 0.0006, output: 0.0024 },
+  // Search Models
+  'gpt-5-search-api': { input: 0.00125, output: 0.01, cachedInput: 0.000125 },
+  'gpt-4o-search-preview': { input: 0.0025, output: 0.01 },
+  'gpt-4o-mini-search-preview': { input: 0.00015, output: 0.0006 },
+  // Image Models (text tokens)
+  'gpt-image-1.5': { input: 0.005, output: 0.01, cachedInput: 0.00125 },
+  'chatgpt-image-latest': { input: 0.005, output: 0.01, cachedInput: 0.00125 },
+  'gpt-image-1': { input: 0.005, cachedInput: 0.00125, output: 0 },
+  'gpt-image-1-mini': { input: 0.002, cachedInput: 0.0002, output: 0 },
+  // Computer Use
+  'computer-use-preview': { input: 0.003, output: 0.012 },
+  // Codex Mini
+  'codex-mini-latest': { input: 0.0015, output: 0.006, cachedInput: 0.000375 },
 }
 
 export function calculateCost(
   model: string,
   inputTokens: number,
-  outputTokens: number
+  outputTokens: number,
+  cachedInputTokens: number = 0
 ): number {
-  const costs = TOKEN_COSTS[model] || { input: 0.01, output: 0.03 }
-  return (inputTokens * costs.input + outputTokens * costs.output) / 1000
+  // Find exact match or partial match (for versioned models like gpt-5.2-chat-latest)
+  let costs = TOKEN_COSTS[model]
+  if (!costs) {
+    // Try to find a partial match (e.g., 'gpt-5.2-codex' matches 'gpt-5.2-codex-something')
+    const baseModel = Object.keys(TOKEN_COSTS).find(key => model.startsWith(key))
+    costs = baseModel ? TOKEN_COSTS[baseModel] : { input: 0.00125, output: 0.01 } // Default to gpt-5 prices
+  }
+  
+  const regularInputTokens = inputTokens - cachedInputTokens
+  const cachedCost = cachedInputTokens * (costs.cachedInput ?? costs.input * 0.1)
+  const inputCost = regularInputTokens * costs.input
+  const outputCost = outputTokens * costs.output
+  
+  return (cachedCost + inputCost + outputCost) / 1000
 }
 
 // =============================================================================

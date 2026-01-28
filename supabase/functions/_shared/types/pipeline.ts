@@ -15,6 +15,8 @@ export type AgentName =
   | 'code-renderer'
   | 'shared-components'
   | 'page-builder'
+  | 'section-generator'  // NEW: Generates individual sections
+  | 'assembly'           // NEW: Assembles sections into pages
   | 'code-collector'
   | 'cms'
   | 'email'

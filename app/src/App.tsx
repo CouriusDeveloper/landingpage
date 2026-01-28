@@ -21,6 +21,7 @@ import { AdminDashboardPage } from './routes/admin/AdminDashboardPage'
 import { AdminProjectPage } from './routes/admin/AdminProjectPage'
 import { AdminCustomersPage } from './routes/admin/AdminCustomersPage'
 import { AdminAIQueuePage } from './routes/admin/AdminAIQueuePage'
+import { AdminPipelineMonitorPage } from './routes/admin/AdminPipelineMonitorPage'
 import { AdminCostAnalyticsPage } from './routes/admin/AdminCostAnalyticsPage'
 
 function App() {
@@ -73,6 +74,16 @@ function App() {
           <AdminRoute>
             <AdminLayout>
               <AdminAIQueuePage />
+            </AdminLayout>
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/pipeline/:pipelineId"
+        element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminPipelineMonitorPage />
             </AdminLayout>
           </AdminRoute>
         }
